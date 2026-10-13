@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Happy Birthday!</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at center, #ffebee 0%, #ffd1dc 60%, #ffb6c1 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Canvas nền trái tim bay */
+    #hearts-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Nút bật/tắt nhạc góc phải trên */
+    .music-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
+      z-index: 100;
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .music-btn:hover {
+      transform: scale(1.1);
+      background: #ffffff;
+    }
+
+    .music-btn.playing {
+      animation: rotateDisc 4s linear infinite;
+    }
+
+    @keyframes rotateDisc {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .app-container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 600px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ================= PHONG BÌ THƯ HỒNG ================= */
+    #screen-envelope {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      animation: float 2.4s ease-in-out infinite;
+      transition: transform 0.3s;
+    }
+
+    #screen-envelope:hover {
+      transform: scale(1.05);
+    }
+
+    .envelope-wrapper {
+      position: relative;
+      width: 170px;
+      height: 120px;
+      background: #ff7597;
+      border-radius: 0 0 12px 12px;
+      box-shadow: 0 15px 30px rgba(255, 75, 130, 0.35);
+    }
+
+    .envelope-wrapper::before {
+      content: '';
+      position: absolute;
+      top: -65px;
+      left: 0;
+      width: 0;
+      height: 0;
+      border-left: 85px solid transparent;
+      border-right: 85px solid transparent;
+      border-bottom: 65px solid #ff85a3;
+      transform-origin: bottom;
+      transition: transform 0.6s ease;
+      z-index: 5;
+    }
+
+    .envelope-pocket {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 0;
+      border-left: 85px solid #ff6188;
+      border-right: 85px solid #ff6188;
+      border-bottom: 75px solid #ff4d7a;
+      border-top: 45px solid transparent;
+      border-radius: 0 0 12px 12px;
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    .letter-peek {
+      position: absolute;
+      bottom: 25px;
+      left: 15px;
+      width: 140px;
+      height: 80px;
+      background: #ffffff;
+      border-radius: 8px;
+      z-index: 2;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.08);
+      transition: transform 0.5s ease;
+    }
+
+    .letter-peek .heart-seal {
+      font-size: 26px;
+      animation: beat 1.2s infinite;
+    }
+
+    .envelope-shadow {
+      width: 150px;
+      height: 18px;
+      background: rgba(180, 70, 100, 0.22);
+      border-radius: 50%;
+      margin-top: 35px;
+      filter: blur(5px);
+      animation: shadowPulse 2.4s ease-in-out infinite;
+    }
+
+    .envelope-wrapper.open::before {
+      transform: rotateX(180deg);
+      z-index: 1;
+    }
+
+    .envelope-wrapper.open .letter-peek {
+      transform: translateY(-50px);
+    }
+
+    /* ================= THIỆP CHÚC MỪNG ================= */
+    #screen-card {
+      display: none;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 28px;
+      padding: 30px;
+      box-shadow: 0 20px 45px rgba(255, 105, 180, 0.25);
+      border: 3px solid rgba(255, 255, 255, 0.95);
+      width: 100%;
+      position: relative;
+      animation: zoomIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      overflow: hidden;
+    }
+
+    .inner-border {
+      border: 2px dashed #ff94b8;
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 20px;
+      background: rgba(255, 245, 247, 0.65);
+      position: relative;
+    }
+
+    .message-section {
+      flex: 1;
+      text-align: left;
+      position: relative;
+    }
+
+    .card-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #ff2d75;
+      margin-bottom: 12px;
+      text-shadow: 0 2px 4px rgba(255, 182, 193, 0.4);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.6s ease;
+    }
+
+    .card-title.revealed {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Khu vực chữ xuất hiện */
+    .card-body {
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: #d12c6a;
+      min-height: 95px;
+      font-weight: 500;
+      position: relative;
+      display: inline-block;
+    }
+
+    /* TRÁI TIM DẪN ĐẦU LƯỚT QUA HIỆN CHỮ */
+    .lead-heart {
+      display: inline-block;
+      font-size: 1.3rem;
+      filter: drop-shadow(0 0 8px #ff4081);
+      animation: leadPulse 0.5s infinite alternate ease-in-out;
+      vertical-align: middle;
+      margin-left: 4px;
+    }
+
+    /* Hiệu ứng hạt bụi sáng (Sparkles) bay ra từ trái tim */
+    .sparkle-particle {
+      position: absolute;
+      pointer-events: none;
+      font-size: 14px;
+      color: #ff3377;
+      animation: sparkleFly 0.8s forwards ease-out;
+      z-index: 25;
+    }
+
+    /* Vệt sáng quét ngang thiệp lúc mới mở */
+    .card-sweep-light {
+      position: absolute;
+      top: -50%;
+      left: -60%;
+      width: 50%;
+      height: 200%;
+      background: linear-gradient(
+        60deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.8) 50%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      transform: rotate(25deg);
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    .sweep-active {
+      animation: sweepPass 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    /* Bánh kem SVG */
+    .cake-container {
+      width: 140px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .cake-svg {
+      width: 100%;
+      height: auto;
+      filter: drop-shadow(0 6px 12px rgba(255, 105, 180, 0.3));
+    }
+
+    .flame {
+      transform-origin: bottom center;
+      animation: flicker 0.6s infinite alternate ease-in-out;
+    }
+
+    /* Keyframe Animations */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-16px); }
+    }
+
+    @keyframes shadowPulse {
+      0%, 100% { transform: scale(1); opacity: 0.6; }
+      50% { transform: scale(0.75); opacity: 0.25; }
+    }
+
+    @keyframes beat {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.25); }
+    }
+
+    @keyframes zoomIn {
+      0% { opacity: 0; transform: scale(0.75); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes leadPulse {
+      from { transform: scale(0.9) rotate(-10deg); }
+      to { transform: scale(1.25) rotate(10deg); }
+    }
+
+    @keyframes sparkleFly {
+      0% { opacity: 1; transform: translate(0, 0) scale(1); }
+      100% { opacity: 0; transform: translate(calc(var(--dx) * 25px), calc(var(--dy) * 25px)) scale(0.2); }
+    }
+
+    @keyframes sweepPass {
+      0% { left: -70%; }
+      100% { left: 160%; }
+    }
+
+    @keyframes flicker {
+      0% { transform: scale(1) rotate(-2deg); fill: #ffbb00; }
+      50% { transform: scale(1.15) rotate(2deg); fill: #ff5500; }
+      100% { transform: scale(0.95) rotate(-1deg); fill: #ffdd44; }
+    }
+
+    @media (max-width: 520px) {
+      .inner-border {
+        flex-direction: column-reverse;
+        text-align: center;
+      }
+      .message-section { text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hiệu ứng Canvas trái tim bay -->
+  <canvas id="hearts-canvas"></canvas>
+
+  <!-- Nút Bật / Tắt Nhạc -->
+  <div class="music-btn" id="musicBtn" onclick="toggleMusic()" title="Bật/Tắt nhạc">🎵</div>
+
+  <!-- Audio nhạc nền sinh nhật lãng mạn -->
+  <audio id="bgMusic" loop preload="auto">
+    <source src="nhac.mp3" type="audio/mp3">
+  </audio>
+
+  <div class="app-container">
+
+    <!-- PHONG BÌ THƯ HỒNG -->
+    <div id="screen-envelope" onclick="openEnvelope()">
+      <div class="envelope-wrapper" id="envelope">
+        <div class="letter-peek">
+          <div class="heart-seal">💖</div>
+        </div>
+        <div class="envelope-pocket"></div>
+      </div>
+      <div class="envelope-shadow"></div>
+    </div>
+
+    <!-- THIỆP CHÚC MỪNG -->
+    <div id="screen-card">
+      <div class="card-sweep-light" id="sweepLight"></div>
+
+      <div class="inner-border">
+        <div class="message-section" id="messageSection">
+          <h2 class="card-title" id="cardTitle">Hép pi bớt đây Kemmm ✨</h2>
+          <div class="card-body">
+            <span id="typed-text"></span><span class="lead-heart" id="leadHeart">💖</span>
+          </div>
+        </div>
+
+        <div class="cake-container">
+          <svg class="cake-svg" viewBox="0 0 200 210" xmlns="http://www.w3.org/2000/svg">
+            <!-- Nến & Ngọn lửa -->
+            <rect x="73" y="48" width="6" height="28" fill="#4dabf7" rx="2" />
+            <ellipse class="flame" cx="76" cy="40" rx="4.5" ry="7" fill="#ffaa00" />
+
+            <rect x="97" y="42" width="6" height="34" fill="#ff6b81" rx="2" />
+            <ellipse class="flame" cx="100" cy="34" rx="5" ry="8" fill="#ffbb00" />
+
+            <rect x="121" y="48" width="6" height="28" fill="#51cf66" rx="2" />
+            <ellipse class="flame" cx="124" cy="40" rx="4.5" ry="7" fill="#ffaa00" />
+
+            <!-- Tầng trên -->
+            <path d="M60 76 Q100 86 140 76 L140 102 Q100 114 60 102 Z" fill="#ffe3e8" />
+            <path d="M60 76 Q100 86 140 76 Q100 66 60 76 Z" fill="#fff0f3" />
+            <path d="M60 76 Q70 90 80 82 Q90 92 100 83 Q110 93 120 82 Q130 91 140 76 Z" fill="#ff8da1" />
+
+            <!-- Tầng dưới -->
+            <path d="M38 108 Q100 126 162 108 L162 152 Q100 172 38 152 Z" fill="#ffe3e8" />
+            <path d="M38 108 Q100 126 162 108 Q100 90 38 108 Z" fill="#ffd1dc" />
+            <path d="M38 108 Q55 125 72 115 Q90 130 107 116 Q125 130 144 115 Q153 125 162 108 Z" fill="#ff6584" />
+
+            <!-- Đĩa bánh -->
+            <ellipse cx="100" cy="158" rx="74" ry="14" fill="#e9ecef" />
+            <ellipse cx="100" cy="156" rx="70" ry="11" fill="#f8f9fa" />
+
+            <!-- Chữ HAPPY BIRTHDAY trên bánh -->
+            <text x="100" y="142" font-size="12" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="1">HAPPY BIRTHDAY</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* ================= 1. NỀN TRÁI TIM BAY (CANVAS) ================= */
+    const canvas = document.getElementById('hearts-canvas');
+    const ctx = canvas.getContext('2d');
+    let hearts = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class Heart {
+      constructor() {
+        this.reset(true);
+      }
+      reset(first = false) {
+        this.x = Math.random() * canvas.width;
+        this.y = first ? Math.random() * canvas.height : canvas.height + 30;
+        this.size = Math.random() * 18 + 10;
+        this.speedY = Math.random() * 1.2 + 0.6;
+        this.speedX = (Math.random() - 0.5) * 0.8;
+        this.opacity = Math.random() * 0.55 + 0.25;
+        this.rotation = Math.random() * Math.PI * 2;
+        this.rotSpeed = (Math.random() - 0.5) * 0.02;
+        const shades = ['#ff4081', '#ff79b0', '#ff80ab', '#ff6584', '#ffb2c9'];
+        this.color = shades[Math.floor(Math.random() * shades.length)];
+      }
+      update() {
+        this.y -= this.speedY;
+        this.x += this.speedX;
+        this.rotation += this.rotSpeed;
+        if (this.y < -40) this.reset();
+      }
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.globalAlpha = this.opacity;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        const topCurveHeight = this.size * 0.3;
+        ctx.moveTo(0, topCurveHeight);
+        ctx.bezierCurveTo(0, 0, -this.size / 2, 0, -this.size / 2, topCurveHeight);
+        ctx.bezierCurveTo(-this.size / 2, (this.size + topCurveHeight) / 2, 0, this.size, 0, this.size);
+        ctx.bezierCurveTo(0, this.size, this.size / 2, (this.size + topCurveHeight) / 2, this.size / 2, topCurveHeight);
+        ctx.bezierCurveTo(this.size / 2, 0, 0, 0, 0, topCurveHeight);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    for (let i = 0; i < 45; i++) {
+      hearts.push(new Heart());
+    }
+
+    function animateHearts() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hearts.forEach(h => {
+        h.update();
+        h.draw();
+      });
+      requestAnimationFrame(animateHearts);
+    }
+    animateHearts();
+
+    /* ================= 2. QUẢN LÝ NHẠC NỀN ================= */
+    const bgMusic = document.getElementById('bgMusic');
+    const musicBtn = document.getElementById('musicBtn');
+    let isPlaying = false;
+
+    function playMusic() {
+      bgMusic.play().then(() => {
+        isPlaying = true;
+        musicBtn.classList.add('playing');
+      }).catch(() => {});
+    }
+
+    function toggleMusic() {
+      if (isPlaying) {
+        bgMusic.pause();
+        musicBtn.classList.remove('playing');
+        isPlaying = false;
+      } else {
+        playMusic();
+      }
+    }
+
+    /* ================= 3. MỞ PHONG BÌ & HIỆU ỨNG TRÁI TIM LƯỚT HIỆN CHỮ ================= */
+    const wishMessage = "Chúc Kem tuổi mới ngày càng xinh đẹp , chúc em giỏi toán hơn . ăn nhiều hơn^-^ ";
+    let isOpened = false;
+
+    function openEnvelope() {
+      if (isOpened) return;
+      isOpened = true;
+
+      // Tự động phát nhạc ngay khi người dùng chạm mở
+      playMusic();
+
+      const envelope = document.getElementById('envelope');
+      envelope.classList.add('open');
+
+      setTimeout(() => {
+        document.getElementById('screen-envelope').style.display = 'none';
+
+        const screenCard = document.getElementById('screen-card');
+        screenCard.style.display = 'block';
+
+        // 1. Quét luồng sáng lướt qua toàn bộ thiệp
+        const sweep = document.getElementById('sweepLight');
+        sweep.classList.add('sweep-active');
+
+        // 2. Hiện tiêu đề
+        setTimeout(() => {
+          document.getElementById('cardTitle').classList.add('revealed');
+        }, 400);
+
+        // 3. Trái tim lướt qua xuất hiện từng chữ
+        setTimeout(startHeartSweepTypewriter, 800);
+      }, 900);
+    }
+
+    // Hiệu ứng hạt bụi sáng bung ra từ vị trí trái tim
+    function spawnSparkle(x, y) {
+      const symbols = ['✨', '⭐', '💖', '🌸'];
+      for (let i = 0; i < 2; i++) {
+        const span = document.createElement('span');
+        span.className = 'sparkle-particle';
+        span.textContent = symbols[Math.floor(Math.random() * symbols.length)];
+        span.style.left = (x + (Math.random() * 14 - 7)) + 'px';
+        span.style.top = (y + (Math.random() * 14 - 7)) + 'px';
+        span.style.setProperty('--dx', (Math.random() * 2 - 1).toFixed(2));
+        span.style.setProperty('--dy', (Math.random() * 2 - 1).toFixed(2));
+        document.body.appendChild(span);
+        setTimeout(() => span.remove(), 800);
+      }
+    }
+
+    function startHeartSweepTypewriter() {
+      let charIdx = 0;
+      const typedText = document.getElementById('typed-text');
+      const leadHeart = document.getElementById('leadHeart');
+
+      function typeNext() {
+        if (charIdx < wishMessage.length) {
+          typedText.textContent += wishMessage.charAt(charIdx);
+          charIdx++;
+
+          // Tọa độ của trái tim dẫn đầu để bắn hạt sáng
+          const rect = leadHeart.getBoundingClientRect();
+          spawnSparkle(rect.left + rect.width / 2, rect.top + rect.height / 2);
+
+          // Tốc độ lướt chữ mượt mà
+          setTimeout(typeNext, 45);
+        } else {
+          // Khi gõ xong, trái tim đáp lại nhẹ nhàng ở cuối câu
+          leadHeart.style.animation = 'beat 1.2s infinite';
+        }
+      }
+      typeNext();
+    }
+  </script>
+</body>
+</html>
